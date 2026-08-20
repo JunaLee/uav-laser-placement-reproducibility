@@ -1,5 +1,6 @@
 # UAV laser placement and optimal indoor experiment — reproducibility release
 
+> **Complete package:** Download **uav_laser_public_release_optimal_20260818.zip** from the [v2026.08.18 release](https://github.com/JunaLee/uav-laser-placement-reproducibility/releases/tag/v2026.08.18). The archive preserves the executable code-and-data directory structure.
 This package contains the minimum code and data needed to reproduce two parts
 of the study:
 
@@ -190,3 +191,4 @@ The MATLAB and Python source files are released under the MIT License; see
 `LICENSE`. The image data, tabular data, reference outputs, figures, and
 documentation are released under CC BY 4.0; see `DATA_LICENSE.md`. MATLAB and
 MathWorks toolboxes are not distributed with this package.
+
