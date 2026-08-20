@@ -1,6 +1,7 @@
 # UAV laser placement and optimal indoor experiment — reproducibility release
 
 > **Complete package:** Download **uav_laser_public_release_optimal_20260818.zip** from the [v2026.08.18 release](https://github.com/JunaLee/uav-laser-placement-reproducibility/releases/tag/v2026.08.18). The archive preserves the executable code-and-data directory structure.
+
 This package contains the minimum code and data needed to reproduce two parts
 of the study:
 
