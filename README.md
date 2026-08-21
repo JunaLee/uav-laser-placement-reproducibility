@@ -1,6 +1,6 @@
 # UAV laser placement and optimal indoor experiment — reproducibility release
 
-> **Complete package:** Download **uav_laser_public_release_optimal_20260818.zip** from the [v2026.08.18 release](https://github.com/JunaLee/uav-laser-placement-reproducibility/releases/tag/v2026.08.18). The archive preserves the executable code-and-data directory structure.
+> **Complete package:** Download **uav_laser_public_release_optimal_20260820.zip** from the [v2026.08.20 release](https://github.com/JunaLee/uav-laser-placement-reproducibility/releases/tag/v2026.08.20). The archive preserves the executable code-and-data directory structure.
 
 This package contains the minimum code and data needed to reproduce two parts
 of the study:
@@ -18,10 +18,10 @@ inspected directly.
 ## Requirements
 
 Reference/development environment: MATLAB R2025b (64-bit). The packaged
-entrypoints were code-analyzed and numerically cross-checked against the prior
-executed R2025b pipeline. A clean end-to-end batch rerun is still pending
-because this host currently fails before MATLAB startup; see
-`RELEASE_STATUS.txt`. Required products are:
+entrypoints were code-analyzed, and the bundled placement preset, camera file,
+and reference image were validated in R2025b. The archived numerical reference
+comes from the previously completed production run; see `RELEASE_STATUS.txt`.
+Required products are:
 
 - MATLAB
 - Computer Vision Toolbox
@@ -37,24 +37,25 @@ Open MATLAB, change the current folder to this release root, and run one of:
 
 ```matlab
 indoor = run_indoor_only;       % recommended first run
-placement = run_placement_only; % interactively select Omega from m3.jpg
-allResults = run_all;           % interactive placement, then indoor workflow
-reference = run_placement_reference; % optional fixed-Omega reference run
+placement = run_placement_only; % choose saved preset or select a new Omega
+allResults = run_all;           % placement choice, then indoor workflow
+reference = run_placement_reference; % use the bundled 31-vertex preset
 ```
 
-The indoor run creates `outputs/indoor_optimal`; the interactive placement run
-creates `outputs/placement_interactive`; and the fixed-reference runner creates
+The indoor run creates `outputs/indoor_optimal`; the general placement runner
+creates `outputs/placement`; and the preset reference runner creates
 `outputs/placement_reference`. The placement search is substantially slower
-than the indoor image pipeline. `run_placement_only` and `run_all` require a
-MATLAB desktop because they wait for user clicks.
+than the indoor image pipeline. A MATLAB desktop is required only when a new
+UAV area is selected interactively.
 
-Open `placement_optimization/placement_optimization_true_Snet.mlx` to inspect
-the placement workflow. Its public default is
-`UAVLaserConfig.InteractiveSelection=true`. The user (1) draws the usable UAV
+Open `placement_optimization/laser_placement_optimization.m` to inspect the
+placement workflow. `run_placement_only` asks whether to use the bundled preset
+or select a new area. In interactive mode, the user (1) draws the usable UAV
 mounting polygon `Omega`, (2) clicks the camera optical-centre projection, and
 (3) clicks one point in the positive camera-z direction. Double-clicking the
-last polygon vertex completes the first step. The plain-text source beside the
-MLX is executable and code-equivalent to it.
+last polygon vertex completes the first step. The choice can be supplied
+without a dialog as `run_placement_only("preset")` or
+`run_placement_only("interactive")`.
 
 ## Data split and independence
 
@@ -127,34 +128,33 @@ ground truth or error metrics from the 44 experiment images.
 
 ## Placement inputs and reproducibility
 
-`campram3.mat` is the UAV camera model used for the field of view and `Snet`
-mapping. `m3.jpg` is a separate planar reference photograph used historically
-to define the feasible mounting polygon `Omega`; it was not acquired by the
-UAV camera represented by `campram3.mat`.
+`placement_optimization/data/campram3.mat` is the UAV camera model used for the
+field of view and `Snet` mapping. `placement_optimization/data/m3.jpg` is the
+planar reference photograph used to define the feasible mounting polygon
+`Omega`. `placement_optimization/data/preset_uav_area.mat` contains only the
+saved 31-vertex polygon and its selection metadata.
 
-The public MLX, `run_placement_only`, and `run_all` default to interactive
-selection from `m3.jpg`, as described above. For a click-free numeric reference,
-run `run_placement_reference`; it uses the archived eight-vertex `Omega`
-coordinates in millimetres and writes to a separate output folder. In the
-interactive path, this rollback intentionally preserves the pre-20:00 legacy
-implementation: image coordinates are rescaled to the `campram3.mat`
-calibration size, undistorted with that camera model, and then mapped to
+`run_placement_only` and `run_all` offer the saved preset and interactive
+selection as explicit alternatives. `run_placement_reference` is the
+click-free shortcut to the saved preset and writes a reference comparison to a
+separate output folder. In interactive mode, image coordinates are rescaled to
+the calibration size, undistorted with `campram3.mat`, and mapped to
 millimetres by a planar projective transform. Because `m3.jpg` is a separate
-reference photograph, this legacy camera-model coupling is retained solely for
-reproducing the earlier optimization result and should be treated as a stated
+reference photograph, this camera-model coupling should be treated as a stated
 methodological limitation.
 
-The implemented objective is the mapped geometric area
-`Snet = integral_Phi |det(J)| dtheta dzeta`; feasible solutions with a folded
-mapping are rejected.
+The allowable pose domain is the distance-dependent JHLEE `PI_dtheta` region.
+The implemented objective is
+`Snet = integral_PI_dtheta |det(J)| dtheta dd`; no independent constant theta
+box is used, and feasible solutions with a folded mapping are rejected.
 
 ## R2025b numerical references
 
 Placement:
 
-- `Snet = 3,819,388.271913765 pixel^2`;
-- laser 1 `(p,q) = (0.002413814899295697, -0.002816187380011802)`;
-- laser 2 `(p,q) = (-0.002413814886238418, -0.002817325277933838)`.
+- `Snet = 2,701,864.90342294 pixel^2`;
+- laser 1 `(p,q) = (0.00222553183577613, -0.00283929246201715)`;
+- laser 2 `(p,q) = (-0.00229057413314412, -0.00288666050726644)`.
 
 Optimal indoor calibration:
 
@@ -165,9 +165,9 @@ Optimal indoor calibration:
 - red `(p,q) = (0.00238118328949032, -0.00275392217518095)`;
 - green `(p,q) = (-0.00230623436069604, -0.00275037855399832)`.
 
-Small platform/version-dependent numerical differences are possible. Both
-the indoor runner and the fixed-Omega reference runner write an
-expected-versus-actual table and warn on a material change. The interactive
+Small platform/version-dependent numerical differences are possible. Both the
+indoor runner and the saved-preset reference runner write an
+expected-versus-actual table and warn on a material change. An interactive
 placement run has no fixed numeric target because its `Omega` is user-defined.
 
 ## Integrity and metadata
@@ -192,4 +192,3 @@ The MATLAB and Python source files are released under the MIT License; see
 `LICENSE`. The image data, tabular data, reference outputs, figures, and
 documentation are released under CC BY 4.0; see `DATA_LICENSE.md`. MATLAB and
 MathWorks toolboxes are not distributed with this package.
-

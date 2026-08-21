@@ -13,10 +13,10 @@ Frobenius 지표, 스티칭, 균열분할, 속도측정 및 논문용 보조 그
 
 ## 실행 환경
 
-기준값과 개발 환경은 MATLAB R2025b 64-bit입니다. 공개 진입점은 코드
-분석기와 기존 실행결과에 대한 수치 교차검증을 통과했지만, 현재 호스트가
-MATLAB 시작 전에 실패하여 clean end-to-end batch 재실행은 남아 있습니다.
-자세한 상태는 `RELEASE_STATUS.txt`에 기록했습니다.
+기준값과 개발 환경은 MATLAB R2025b 64-bit입니다. 공개 진입점은 MATLAB
+코드 분석기를 통과했고, 포함된 UAV 프리셋·카메라 파일·기준 이미지도
+R2025b에서 검증했습니다. 배치 기준값은 앞서 완료한 production 실행에서
+가져왔습니다. 자세한 상태는 `RELEASE_STATUS.txt`에 기록했습니다.
 
 - MATLAB
 - Computer Vision Toolbox
@@ -27,15 +27,17 @@ MATLAB에서 이 폴더를 현재 폴더로 설정한 뒤 실행합니다.
 
 ```matlab
 indoor = run_indoor_only;       % 실내 최적 배치만
-placement = run_placement_only; % m3에서 Omega를 직접 선택
-allResults = run_all;           % interactive placement 후 실내 실행
-reference = run_placement_reference; % 고정 Omega 기준값 재현(선택)
+placement = run_placement_only; % 저장 프리셋 또는 새 Omega 선택
+allResults = run_all;           % placement 선택 후 실내 실행
+reference = run_placement_reference; % 저장된 31점 프리셋 재현
 ```
 
-`run_placement_only`와 `run_all`은 MATLAB 데스크톱에서 사용자 입력을
-기다립니다. 실내 결과는 `outputs/indoor_optimal`, interactive placement는
-`outputs/placement_interactive`, 고정 기준 실행은
-`outputs/placement_reference`에 각각 저장됩니다.
+`run_placement_only`와 `run_all`은 프리셋 사용과 새 영역 지정 중 하나를
+선택하게 합니다. 새 영역을 직접 지정할 때만 MATLAB 데스크톱이 필요합니다.
+실내 결과는 `outputs/indoor_optimal`, 일반 placement는 `outputs/placement`,
+프리셋 기준 실행은 `outputs/placement_reference`에 저장됩니다. 대화상자를
+생략하려면 `run_placement_only("preset")` 또는
+`run_placement_only("interactive")`를 사용합니다.
 
 ## 데이터 독립성
 
@@ -58,21 +60,26 @@ reference = run_placement_reference; % 고정 Omega 기준값 재현(선택)
 
 ## Placement 자료의 역할
 
-`campram3.mat`은 FOV 및 `Snet` 계산에 쓰는 UAV 카메라 모델입니다.
-`m3.jpg`는 기체의 장착 가능영역 `Omega`를 정했던 별도의 평면 참조사진이며,
-`campram3` 카메라로 촬영된 영상이 아닙니다.
+`placement_optimization/data/campram3.mat`은 FOV 및 `Snet` 계산에 쓰는 UAV
+카메라 모델입니다. `placement_optimization/data/m3.jpg`는 기체의 장착
+가능영역 `Omega`를 정한 별도의 평면 참조사진이고,
+`placement_optimization/data/preset_uav_area.mat`에는 저장된 31점 폴리곤과
+선택 메타데이터만 들어 있습니다.
 
-공개 MLX, `run_placement_only`, `run_all`의 기본값은
-`InteractiveSelection=true`입니다. 사용자는 `m3.jpg`에서 (1) 장착 가능영역
+`run_placement_only`와 `run_all`은 저장 프리셋과 새 영역 지정 중 하나를
+선택하게 합니다. 새 영역 지정에서는 `m3.jpg`에서 (1) 장착 가능영역
 `Omega` 다각형을 그리고, (2) 카메라 광축 중심의 투영점을 클릭하고,
 (3) 카메라 +z 방향의 점을 클릭합니다. 다각형의 마지막 점은 더블클릭하여
 완료합니다. 클릭 없이 기존 수치를 재현하려면 `run_placement_reference`를
-사용합니다. 이 함수는 보관된 8개 `Omega` 좌표(mm)를 사용하고 별도 폴더에
-결과를 저장합니다. 이번 롤백은 오후 8시 이전의 기존 구현을 그대로
-보존합니다. 즉 `m3.jpg` 좌표를 `campram3.mat`의 보정 영상 크기로 환산하고,
-그 카메라 모델로 왜곡보정한 뒤 평면 projective transform으로 mm 좌표화합니다.
-`m3.jpg`가 별도의 참조사진이라는 점을 고려하면 이 카메라 모델 결합은
-이전 최적화 결과 재현을 위해 유지한 방법론적 한계입니다.
+사용합니다. 이 함수는 저장된 31점 좌표를 사용하고 별도 폴더에 결과와
+기준값 비교표를 저장합니다.
+
+허용 자세영역은 거리마다 각도 범위가 달라지는 JHLEE `PI_dtheta`입니다.
+목적함수는 이 종속영역에서 계산한
+`Snet = integral_PI_dtheta |det(J)| dtheta dd`이며, 독립적인 상수 theta
+범위를 사용하지 않습니다. `m3.jpg`가 별도 참조사진이라는 점을 고려하면,
+해당 좌표를 `campram3.mat`으로 왜곡보정하고 mm로 변환하는 결합은 명시된
+방법론적 한계로 보아야 합니다.
 
 ## 출력
 
